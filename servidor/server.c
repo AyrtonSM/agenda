@@ -3,6 +3,8 @@
 #include<string.h>
 
 #define N 10
+#define MAX_WORD_SIZE 80
+
 
 
 typedef struct telephone{
@@ -67,6 +69,7 @@ int addNewContact(char *name, char* email, Telephones *t, char* address){
 int saveContact(Contact *con){
     FILE * agenda = getAgenda();
     if(agenda!=NULL){
+        
         fprintf(agenda,"%s;%s;%s\n",con->name,con->email, con->address);
 
         fclose(agenda);
@@ -76,6 +79,32 @@ int saveContact(Contact *con){
         return -1;
     }
 }
+
+void normalizeMessageIntoParams(char *message){
+    if(message[0] == ";") return -1;
+
+    int i = 0, DELIMITER_COUNTER = 0;
+    int CSV_TEL_DELIMITER_LIMIT = 2;
+
+    char *word = malloc(sizeof(char)*MAX_WORD_SIZE);
+    while(message[i] != '\0'){
+        
+        if(strcmp(message[i],";")){
+            DELIMITER_COUNTER++;
+            if(DELIMITER_COUNTER == CSV_TEL_DELIMITER_LIMIT){
+                // Start to build telephones 
+                Telephones *telephones = malloc(sizeof(Telephones));
+               
+
+            }    
+        }else{
+            strcpy(word,strcat(word,message[i]));
+        }
+        
+        i++;
+    }
+}
+
 
 void init(){
     int id = 1;
