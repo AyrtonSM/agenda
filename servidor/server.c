@@ -4,11 +4,11 @@
 
 #define N 10
 #define MAX_WORD_SIZE 80
-
+#define MAX_TEL_SIZE 12
 
 
 typedef struct telephone{
-    char telefone[20];
+    char telefone[MAX_TEL_SIZE];
 } Telephone ;
 
 typedef struct telephones{
@@ -51,19 +51,8 @@ FILE * createAgenda(){
     return fopen("agenda.csv","a");
 }
 
-int addNewContact(char *name, char* email, Telephones *t, char* address){
-    Contact *c = malloc(sizeof(Contact));
-    Telephones *tel = malloc(sizeof(Telephones));
-
-    strcpy(c->name,name);
-    strcpy(c->address,address);
-    strcpy(c->email,email);
-    tel = t;
-    c->tel = tel;
-
-    
-    return saveContact(c);
-    
+int addNewContact(Contact * contact){    
+    return saveContact(contact);
 }
 
 int saveContact(Contact *con){
@@ -75,44 +64,101 @@ int saveContact(Contact *con){
         fclose(agenda);
         return 1;
     }else{
-        printf("**ERROR** : There was some error while saving the data. Has agenda been created.");
+        printf("**ERROR** : There was some error while saving the data. Has agenda been created?");
         return -1;
     }
 }
 
-void normalizeMessageIntoParams(char *message){
+char *addToWord(char *word,char *message, int pos){
+    int size = strlen(word);
+    if(size < MAX_WORD_SIZE)
+        word[size] = message[pos];
+        
+    return word;    
+}
+
+Contact *normalizeMessageIntoParams(char *message){
+    
     if(message[0] == ";") return -1;
 
     int i = 0, DELIMITER_COUNTER = 0;
     int CSV_TEL_DELIMITER_LIMIT = 2;
-
-    char *word = malloc(sizeof(char)*MAX_WORD_SIZE);
+    int TEL_COUNT = 0;
+    char *word = NULL;
+    Telephones *telephones = malloc(sizeof(Telephones));
+    Telephone *telephone = malloc(sizeof(Telephone));
+    Contact *contact = malloc(sizeof(Contact));
+     
     while(message[i] != '\0'){
-        
-        if(strcmp(message[i],";")){
-            DELIMITER_COUNTER++;
-            if(DELIMITER_COUNTER == CSV_TEL_DELIMITER_LIMIT){
-                // Start to build telephones 
-                Telephones *telephones = malloc(sizeof(Telephones));
-               
+        if(word == NULL){
+            word = malloc(sizeof(char) * MAX_WORD_SIZE);
+        }
 
-            }    
+        if(DELIMITER_COUNTER == CSV_TEL_DELIMITER_LIMIT){
+                // Start to build telephones 
+                if(message[i] != '[' && message[i] != ']' && message[i] != ','){
+                    word = addToWord(word, message, i);
+                }else{
+                    if(message[i] == '['){
+                        word = malloc(sizeof(char) * MAX_WORD_SIZE);
+                    }else if(message[i] == ']'){
+                        free(word);
+                        i++;
+                    }else if(message[i] == ','){
+                        strcpy(telephone->telefone,word);
+                        telephones->teleph[TEL_COUNT++] = *telephone;
+                        word = malloc(sizeof(char) * MAX_WORD_SIZE);
+                    }
+                }
+    
+        }
+
+        if(message[i] == ';'){
+            if(DELIMITER_COUNTER == 0){
+                printf("Nome : %s \n ", word);
+                strcpy(contact->name,word);
+            }else if(DELIMITER_COUNTER == 1){
+                printf("Email : %s \n ", word);
+                strcpy(contact->email,word);
+
+            }else if(DELIMITER_COUNTER == 2){
+                int i;
+                for (i = 0; i < N ; i++){
+                    Telephone tel = telephones->teleph[i];
+                    if(!strlen(tel.telefone) == 0){
+                        printf("Tel %d : %s \n",i+1,tel.telefone);
+                    }                
+                }
+                contact->tel = telephones;
+            }else if(DELIMITER_COUNTER == 3){
+                strcpy(contact->address, word);
+                printf("Endereco : %s",contact->address);
+            }
+
+            DELIMITER_COUNTER++;
+                
         }else{
-            strcpy(word,strcat(word,message[i]));
+            if(DELIMITER_COUNTER != CSV_TEL_DELIMITER_LIMIT)
+                word = addToWord(word, message, i);
         }
         
-        i++;
-    }
+         i++;  
+     }
+    
+    return contact;
 }
 
 
 void init(){
     int id = 1;
+    Contact *contact;
     switch (id)
     {
     case 1:
         // Adiciona novo contato
-        if(addNewContact("ayrton","ayrton@gmail.com",NULL,"frei vidal da penha")){
+        
+        contact = normalizeMessageIntoParams("ayrton;ayrton@gmail.com;[88,22,20];frei vidal da penha;");
+        if(addNewContact(contact)){
             // mandar mensagem de successo para o cliente por uma das threads.
         }else{
             // mandar mensagem de erro para o cliente por uma das threads;
