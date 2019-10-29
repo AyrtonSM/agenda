@@ -58,8 +58,21 @@ int addNewContact(Contact * contact){
 int saveContact(Contact *con){
     FILE * agenda = getAgenda();
     if(agenda!=NULL){
-        
-        fprintf(agenda,"%s;%s;%s\n",con->name,con->email, con->address);
+        char *tel = malloc(sizeof(char)*N*MAX_TEL_SIZE);
+        int i = 0;
+        int j = 0;
+        int k = 0;
+        for (i = 0; i < 2; i++){
+            for (j = 0; j < strlen(con->tel->teleph[i].telefone) ; j++){
+                    tel[k] = con->tel->teleph[i].telefone[j];
+                    k++;
+            }
+            tel[k++] = ',';
+        }
+
+        tel[strlen(tel)-1] = '\0';
+
+        fprintf(agenda,"%s;%s;[%s];%s\n",con->name,con->email, tel, con->address);
 
         fclose(agenda);
         return 1;
@@ -115,24 +128,26 @@ Contact *normalizeMessageIntoParams(char *message){
 
         if(message[i] == ';'){
             if(DELIMITER_COUNTER == 0){
-                printf("Nome : %s \n ", word);
+                // printf("Nome : %s \n ", word);
                 strcpy(contact->name,word);
+                word = malloc(sizeof(char));
             }else if(DELIMITER_COUNTER == 1){
-                printf("Email : %s \n ", word);
+                // printf("Email : %s \n ", word);
                 strcpy(contact->email,word);
+                word = malloc(sizeof(char));
 
             }else if(DELIMITER_COUNTER == 2){
                 int i;
                 for (i = 0; i < N ; i++){
                     Telephone tel = telephones->teleph[i];
                     if(!strlen(tel.telefone) == 0){
-                        printf("Tel %d : %s \n",i+1,tel.telefone);
+                        // printf("Tel %d : %s \n",i+1,tel.telefone);
                     }                
                 }
                 contact->tel = telephones;
             }else if(DELIMITER_COUNTER == 3){
                 strcpy(contact->address, word);
-                printf("Endereco : %s",contact->address);
+                // printf("Endereco : %s",contact->address);
             }
 
             DELIMITER_COUNTER++;
@@ -159,9 +174,9 @@ void init(){
         
         contact = normalizeMessageIntoParams("ayrton;ayrton@gmail.com;[88,22,20];frei vidal da penha;");
         if(addNewContact(contact)){
-            // mandar mensagem de successo para o cliente por uma das threads.
+            // mandar mensagem de successo para o cliente por uma das threads e usando o socket.
         }else{
-            // mandar mensagem de erro para o cliente por uma das threads;
+            // mandar mensagem de erro para o cliente por uma das threads e usando o socket.
         }
 
         break;
