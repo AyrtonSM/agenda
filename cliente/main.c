@@ -10,6 +10,8 @@
 // Characters styles
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KBLU  "\x1B[34m"
 
 // Information regarding the telephone size.
 #define MAX_TEL_SIZE 12
@@ -35,12 +37,20 @@ int insertContact(){
     printf("* Person's address is not required, if you want to leave it blank just hit SPACE\n ");
     printf("========================================================================\n\n ");
 
+    scanf("%[^\n]");
+    scanf("%*[^\n]"); scanf("%*c");
+
+    char *id = malloc(sizeof(char)*5);
     char *name = malloc(sizeof(char)*80); 
     char *email = malloc(sizeof(char)*80);
     char *address = malloc(sizeof(char)*80);
     char *telephone = malloc(sizeof(char)*80);
 
     fflush(stdin);
+    printf("ID (*) : ");
+    scanf("%[^\n]", id);
+    scanf("%*[^\n]"); scanf("%*c");
+
     do{
         printf("Name (*) : ");
         scanf("%[^\n]", name);
@@ -90,7 +100,9 @@ int insertContact(){
     scanf("%*[^\n]"); scanf("%*c");
 
     char* message = malloc(sizeof(char) * 1024);
-    strcat(message,"+23131;");
+    strcat(message,"+");
+    strcat(message,id);
+    strcat(message,";");
     strcat(message,name);
     strcat(message,";");
     strcat(message,email);
@@ -121,9 +133,12 @@ void menu(){
     {
     case 1:
         if(insertContact()){
-            // if(read( sock , bufferServerMessage, 1024)){
-            //     printf("Server says : %s", bufferServerMessage);
-            // }
+            if(read( sock , bufferServerMessage, 1024)){
+                system("clear");
+                printf("%s Server says : %s\n",KBLU,bufferServerMessage);
+                printf("---------------------------------------\n\n");
+                menu();
+            }
         }
         break;
     

@@ -4,15 +4,30 @@
 #include <unistd.h> 
 #include <sys/socket.h> 
 #include <netinet/in.h>
+#include <pthread.h> 
 
 #define PORT 5000
 
 #define N 10
 #define MAX_WORD_SIZE 80
 #define MAX_TEL_SIZE 12
+#define BUFF_SIZE 1024
 
 int new_socket;
-char buffer[1024] = {0}; 
+int messageCounter;
+char buffer[BUFF_SIZE] = {0}; 
+char *sucessMessage = "New contact added sucessfully"; 
+char *failureMessage = "Contact failed to be added"; 
+
+typedef struct buf{
+    char buf[BUFF_SIZE];
+}Buffer;
+
+typedef struct buffering{
+    Buffer buf[MAX_WORD_SIZE];
+}Buffering;
+
+Buffering *buf_aux;
 
 typedef struct telephone{
     char telefone[MAX_TEL_SIZE];
@@ -192,12 +207,12 @@ void init(char *message){
     {
     case '+':
         // Adiciona novo contato
-        //printf("%s",message);
+
         contact = normalizeMessageIntoParams(message);
         if(addNewContact(contact)){
-            // mandar mensagem de successo para o cliente por uma das threads e usando o socket.
+            send(new_socket, sucessMessage, strlen(sucessMessage), 0);
         }else{
-            // mandar mensagem de erro para o cliente por uma das threads e usando o socket.
+            send(new_socket, failureMessage, strlen(failureMessage), 0);
         }
 
         break;
@@ -245,7 +260,7 @@ void initSocket(){
     int opt = 1; 
     int addrlen = sizeof(address); 
     
-    char *hello = "Hello from server"; 
+    
        
     // Creating socket file descriptor 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
@@ -286,16 +301,67 @@ void initSocket(){
     //send(new_socket , hello , strlen(hello) , 0 );
 }
 
-int getMessageFromClient(){
+void *getMessageFromClient(){
     
-    int valread = read( new_socket , buffer, 1024);
-    init(buffer);
+    printf("thread get message iniciada ");
+    Buffering *buffering = malloc(sizeof(Buffering));
     
+    int i = messageCounter;
+    while(1){
+        // printf("ok, thread counting..\n");
+        initSocket();
+        Buffer *buf = malloc(sizeof(Buffer)); 
+        int valread = read( new_socket , buf->buf, 1024);
+        printf("aquiii -> %s\n",buf->buf);
+        buffering->buf[i] = *buf;
+        buf_aux = buffering;
+        i++;
+        messageCounter = i;
+         printf("sssss");
+        sleep(1);
+       
+    }
+}
+
+void *placeMessageFromBuffer(){
+    printf("thread place message ");
+    Buffering *buffering = malloc(sizeof(Buffering));
+    buffering = buf_aux;
+     while(1){
+         printf("->\n");
+        int j = 0;
+        while(j < messageCounter){
+            // printf("thread escrevendo : %s ",buffering->buf[j].buf);
+
+            //printf("%d | %d \n | %s",j,messageCounter,);
+            init(buf_aux->buf[j].buf);
+            j++;
+        }
+         sleep(5);
+    }
+    return NULL;
+}
+
+void load(){
+    
+        
+        
+    // This could be inside a thread 
+    
+    pthread_t thread_id_read;
+    pthread_t thread_id_place; 
+
+    printf("antes da thread 1");
+    pthread_create(&thread_id_read, NULL, getMessageFromClient, NULL);
+    pthread_create(&thread_id_place, NULL, placeMessageFromBuffer, NULL);
+    
+    pthread_join(thread_id_read, NULL);
+    pthread_join(thread_id_place, NULL); 
 }
 
 int main(){
 
-    
+
     printf("Loading Agenda...\n");
     if(!agendaExists()){
 
@@ -306,17 +372,13 @@ int main(){
             return -1;
         }else{
             printf("Agenda initiated successfuly \n\n");
-            initSocket();
+            load();
         }
 
 
     }else{
         printf("Load Complete...\n");
-        initSocket();
-        
-        
-        // This could be inside a thread 
-        getMessageFromClient();
+        load();
 
     }
 
