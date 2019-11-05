@@ -14,11 +14,11 @@
 #define BUFF_SIZE 1024
 
 int new_socket;
-int messageCounter;
+int messageCounter = -1;
 char buffer[BUFF_SIZE] = {0}; 
 char *sucessMessage = "New contact added sucessfully"; 
 char *failureMessage = "Contact failed to be added"; 
-
+int placed = 0;
 typedef struct buf{
     char buf[BUFF_SIZE];
 }Buffer;
@@ -45,7 +45,55 @@ typedef struct contact{
     Telephones *tel;
 
 }Contact;
+void initSocket(){
 
+    int server_fd , valread; 
+    struct sockaddr_in address; 
+    int opt = 1; 
+    int addrlen = sizeof(address); 
+    
+    
+       
+    // Creating socket file descriptor 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    { 
+        perror("socket failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+       
+    // Forcefully attaching socket to the port 8080 
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) 
+    { 
+        perror("setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons( PORT ); 
+       
+    if (bind(server_fd, (struct sockaddr *)&address,  
+                                 sizeof(address))<0) 
+    { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+    if (listen(server_fd, 3) < 0) 
+    { 
+        perror("listen"); 
+        exit(EXIT_FAILURE); 
+    } 
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
+                       (socklen_t*)&addrlen))<0) 
+    { 
+        perror("accept"); 
+        exit(EXIT_FAILURE); 
+    } 
+
+    printf("New socket created : %d", new_socket);
+    
+    //send(new_socket , hello , strlen(hello) , 0 );
+}
 
 int removeContact(char *id){
 
@@ -100,6 +148,8 @@ int saveContact(Contact *con){
 
         fprintf(agenda,"%s,%s;%s;[%s];%s\n",con->id,con->name,con->email, tel, con->address);
 
+        free(con);
+        free(tel);
         fclose(agenda);
         return 1;
     }else{
@@ -116,8 +166,9 @@ char *addToWord(char *word,char *message, int pos){
     return word;    
 }
 
-Contact *normalizeMessageIntoParams(char *message){
-    
+Contact *normalizeMessageIntoParams(char *m){
+    char *message = malloc(sizeof(char)*MAX_WORD_SIZE);
+    message = m;
     if(message[0] == ";") return -1;
     
     int i = 1, DELIMITER_COUNTER = 0;
@@ -194,26 +245,29 @@ Contact *normalizeMessageIntoParams(char *message){
         
          i++;  
      }
-    
+    free(word);
+    free(telephones);
+    free(telephone);
     return contact;
 }
 
 
 void init(char *message){
-    char c = message[0];
+    char *m = malloc(sizeof(char)*MAX_WORD_SIZE);
+    m = message;
+    char c = m[0];//message[0];
 
     Contact *contact;
     switch (c)
     {
     case '+':
-        // Adiciona novo contato
-
-        contact = normalizeMessageIntoParams(message);
+        contact = normalizeMessageIntoParams(m);       
         if(addNewContact(contact)){
             send(new_socket, sucessMessage, strlen(sucessMessage), 0);
         }else{
             send(new_socket, failureMessage, strlen(failureMessage), 0);
         }
+       
 
         break;
     case 2:
@@ -250,77 +304,36 @@ void init(char *message){
     }
     
 
-    return;
+
 }
 
-void initSocket(){
 
-    int server_fd , valread; 
-    struct sockaddr_in address; 
-    int opt = 1; 
-    int addrlen = sizeof(address); 
-    
-    
-       
-    // Creating socket file descriptor 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
-    { 
-        perror("socket failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-       
-    // Forcefully attaching socket to the port 8080 
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-                                                  &opt, sizeof(opt))) 
-    { 
-        perror("setsockopt"); 
-        exit(EXIT_FAILURE); 
-    } 
-    address.sin_family = AF_INET; 
-    address.sin_addr.s_addr = INADDR_ANY; 
-    address.sin_port = htons( PORT ); 
-       
-    if (bind(server_fd, (struct sockaddr *)&address,  
-                                 sizeof(address))<0) 
-    { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-    if (listen(server_fd, 3) < 0) 
-    { 
-        perror("listen"); 
-        exit(EXIT_FAILURE); 
-    } 
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
-                       (socklen_t*)&addrlen))<0) 
-    { 
-        perror("accept"); 
-        exit(EXIT_FAILURE); 
-    } 
-    
-    //send(new_socket , hello , strlen(hello) , 0 );
-}
 
 void *getMessageFromClient(){
     
     printf("thread get message iniciada ");
     Buffering *buffering = malloc(sizeof(Buffering));
+
     
-    int i = messageCounter;
     while(1){
         // printf("ok, thread counting..\n");
+        
+        Buffer *buf = malloc(sizeof(Buffer));
+        int valread;
         initSocket();
-        Buffer *buf = malloc(sizeof(Buffer)); 
-        int valread = read( new_socket , buf->buf, 1024);
-        printf("aquiii -> %s\n",buf->buf);
-        buffering->buf[i] = *buf;
-        buf_aux = buffering;
-        i++;
-        messageCounter = i;
-         printf("sssss");
-        sleep(1);
+        if(valread = read( new_socket , buf->buf, 1024)){
+             buffering->buf[messageCounter+1] = *buf;
+             messageCounter++;
+             buf_aux = buffering;
+             printf("aaaaaaaaaaaaaaaaaaaaaaa");
+            
+        }
+        printf("rodando....\n");
+        free(buf);
+        sleep(1.000000000000000036e-10);
        
     }
+    return NULL;
 }
 
 void *placeMessageFromBuffer(){
@@ -328,16 +341,22 @@ void *placeMessageFromBuffer(){
     Buffering *buffering = malloc(sizeof(Buffering));
     buffering = buf_aux;
      while(1){
-         printf("->\n");
-        int j = 0;
-        while(j < messageCounter){
-            // printf("thread escrevendo : %s ",buffering->buf[j].buf);
+        
+        if(messageCounter >= 0){
+            
+            while(placed <= messageCounter){
+                char* message = malloc(sizeof(char)*MAX_WORD_SIZE);
+                message = buf_aux->buf[placed].buf; 
 
-            //printf("%d | %d \n | %s",j,messageCounter,);
-            init(buf_aux->buf[j].buf);
-            j++;
+                init(message);
+                printf("** Saved at file agenda.csv : %s ** \n",message);
+                free(message);
+                placed++;
+
+            }
         }
-         sleep(5);
+        
+        sleep(1);
     }
     return NULL;
 }

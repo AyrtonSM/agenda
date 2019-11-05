@@ -118,35 +118,7 @@ int insertContact(){
 
 }
 
-void menu(){
 
-    int op;
-    printf("=========================== SOCKETS AGENDA ======================\n\n ");
-    printf("1 - INSERT NEW CONTACT \n ");
-    printf("2 - LIST EXISTING CONTACT \n ");
-    printf("3 - DELETE A CONTACT \n ");
-    printf("4 - UPDATE AN EXISTING CONTACT \n ");
-    printf("=================================================================\n\n ");
-
-    scanf("%d",&op);
-    switch (op)
-    {
-    case 1:
-        if(insertContact()){
-            if(read( sock , bufferServerMessage, 1024)){
-                system("clear");
-                printf("%s Server says : %s\n",KBLU,bufferServerMessage);
-                printf("---------------------------------------\n\n");
-                menu();
-            }
-        }
-        break;
-    
-    default:
-        break;
-    }
-
-}
 
 int createSocket(){
     int serverMsg; 
@@ -175,6 +147,37 @@ int createSocket(){
     }
 
     return 1;
+}
+
+void menu(){
+    
+
+    int op;
+    printf("=========================== SOCKETS AGENDA ======================\n\n ");
+    printf("1 - INSERT NEW CONTACT \n ");
+    printf("2 - LIST EXISTING CONTACT \n ");
+    printf("3 - DELETE A CONTACT \n ");
+    printf("4 - UPDATE AN EXISTING CONTACT \n ");
+    printf("=================================================================\n\n ");
+
+    scanf("%d",&op);
+    switch (op)
+    {
+    case 1:
+        if(insertContact()){
+            if(read( sock , bufferServerMessage, 1024)){
+                system("clear");
+                printf("%s Server says : %s\n",KBLU,bufferServerMessage);
+                printf("---------------------------------------\n\n");
+                menu();   
+            }
+        }
+        break;
+    
+    default:
+        break;
+    }
+
 }
 
 int main(int argc, char **argv)
